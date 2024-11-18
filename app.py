@@ -2,6 +2,8 @@ import streamlit as st
 from playwright.sync_api import sync_playwright
 import pandas as pd
 import time
+import os
+os.system("playwright install --with-deps")
 
 # Streamlit interface
 st.title("Auction Scraper - Increased Delay")
