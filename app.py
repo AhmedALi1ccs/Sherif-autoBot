@@ -8,7 +8,7 @@ import os
 os.system("playwright install chromium")
 
 # Streamlit App Title
-st.title("Auction Scraper")
+st.title("Auction Scraper - Multi-Page Support")
 
 # User Input for Auction Date
 st.subheader("Enter the Auction Date")
@@ -17,7 +17,7 @@ run_button = st.button("Run Scraper")
 
 # Function to Scrape Auctions
 def scrape_auctions(date):
-    """Scrapes auction data from the specified date."""
+    """Scrapes auction data from the specified date, including all pages."""
     with sync_playwright() as p:
         try:
             # Launch browser in headless mode
@@ -38,54 +38,75 @@ def scrape_auctions(date):
             # Inform the user about the scraping process
             st.info(f"Scraping auction data for date: {formatted_date}")
 
-            # Navigate to the page
+            # Navigate to the first page
             page.goto(url)
             page.wait_for_load_state('networkidle')
 
             # Additional delay to allow dynamic content to load
             time.sleep(5)
 
-            # Locate auction details
-            auction_details = page.locator('.AUCTION_DETAILS')
-            count = auction_details.count()
-
-            if count == 0:
-                st.warning("No auctions found for the selected date.")
+            # Find the total number of pages
+            max_pages_element = page.locator("#maxWA")
+            if max_pages_element.count() == 0:
+                st.warning("Could not determine the total number of pages.")
                 return None
+            max_pages = int(max_pages_element.inner_text().strip())
+            st.info(f"Total pages to scrape: {max_pages}")
 
-            # Progress Bar for Feedback
-            progress_bar = st.progress(0)
+            # Initialize data storage
             data_list = []
 
-            # Extract data from each auction detail block
-            for i in range(count):
-                table_rows = auction_details.nth(i).locator('table.ad_tab tr')
-                row_count = table_rows.count()
+            # Loop through all pages
+            for current_page in range(1, max_pages + 1):
+                st.info(f"Scraping Page {current_page} of {max_pages}...")
 
-                auction_data = {}
-                for j in range(row_count):
-                    try:
-                        label = table_rows.nth(j).locator('th.AD_LBL').inner_text().strip(":")
-                        value = table_rows.nth(j).locator('td.AD_DTA').inner_text().strip()
-                        auction_data[label] = value
-                    except:
-                        continue
+                # Locate auction details
+                auction_details = page.locator('.AUCTION_DETAILS')
+                count = auction_details.count()
 
-                # Append cleaned data
-                if auction_data:
-                    data_list.append({
-                        "Case Status": auction_data.get("Case Status", ""),
-                        "Case #": auction_data.get("Case #", ""),
-                        "Parcel ID": auction_data.get("Parcel ID", ""),
-                        "Property Address": auction_data.get("Property Address", ""),
-                        "City, ZIP": auction_data.get("", ""),  # Empty label for City, ZIP
-                        "Appraised Value": auction_data.get("Appraised Value", ""),
-                        "Opening Bid": auction_data.get("Opening Bid", ""),
-                        "Deposit Requirement": auction_data.get("Deposit Requirement", "")
-                    })
+                if count == 0:
+                    st.warning(f"No auctions found on Page {current_page}.")
+                    break
 
-                # Update progress
-                progress_bar.progress((i + 1) / count)
+                # Progress Bar for Feedback
+                progress_bar = st.progress(0)
+
+                # Extract data from each auction detail block
+                for i in range(count):
+                    table_rows = auction_details.nth(i).locator('table.ad_tab tr')
+                    row_count = table_rows.count()
+
+                    auction_data = {}
+                    for j in range(row_count):
+                        try:
+                            label = table_rows.nth(j).locator('th.AD_LBL').inner_text().strip(":")
+                            value = table_rows.nth(j).locator('td.AD_DTA').inner_text().strip()
+                            auction_data[label] = value
+                        except:
+                            continue
+
+                    # Append cleaned data
+                    if auction_data:
+                        data_list.append({
+                            "Case Status": auction_data.get("Case Status", ""),
+                            "Case #": auction_data.get("Case #", ""),
+                            "Parcel ID": auction_data.get("Parcel ID", ""),
+                            "Property Address": auction_data.get("Property Address", ""),
+                            "City, ZIP": auction_data.get("", ""),  # Empty label for City, ZIP
+                            "Appraised Value": auction_data.get("Appraised Value", ""),
+                            "Opening Bid": auction_data.get("Opening Bid", ""),
+                            "Deposit Requirement": auction_data.get("Deposit Requirement", "")
+                        })
+
+                    # Update progress
+                    progress_bar.progress((i + 1) / count)
+
+                # Move to the next page if not on the last page
+                if current_page < max_pages:
+                    current_page_input = page.locator("#curPWA")
+                    current_page_input.fill(str(current_page + 1))  # Update the input value to the next page
+                    current_page_input.press("Enter")  # Simulate pressing Enter to navigate to the next page
+                    time.sleep(5)  # Allow time for the next page to load
 
             browser.close()
             return pd.DataFrame(data_list)
