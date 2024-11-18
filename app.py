@@ -19,7 +19,7 @@ def scrape_auctions(date):
     with sync_playwright() as p:
         try:
             # Launch the browser
-            browser = p.chromium.launch(headless=True)  # Use headless=True for deployment
+            browser = p.chromium.launch(headless=True)
             context = browser.new_context()
             page = context.new_page()
 
@@ -31,8 +31,12 @@ def scrape_auctions(date):
             page.goto(url)
             page.wait_for_load_state('networkidle')
 
-            # Additional delay for dynamic content loading
+            # Wait for additional loading
             time.sleep(10)
+
+            # Debug: Capture and display page content
+            full_html = page.content()
+            st.text_area("Page HTML Content", full_html, height=300)
 
             # Locate auction details
             auction_details = page.locator('.AUCTION_DETAILS')
