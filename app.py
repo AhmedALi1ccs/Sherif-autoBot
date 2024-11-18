@@ -2,17 +2,23 @@ import streamlit as st
 from playwright.sync_api import sync_playwright
 import pandas as pd
 import time
+import os
+
+# Install Playwright browsers (required for deployment)
+os.system("playwright install chromium")
 
 # Streamlit interface
-st.title("Auction Scraper - Increased Delay")
+st.title("Auction Scraper - Deployment Ready")
 
+# User input for the auction date
 auction_date = st.date_input("Select Auction Date")
 run_button = st.button("Run Scraper")
 
 def scrape_auctions(date):
-    """Scrapes auction data from the page with increased delay."""
+    """Scrapes auction data from the page."""
     with sync_playwright() as p:
         try:
+            # Launch the browser
             browser = p.chromium.launch(headless=True)  # Use headless=True for deployment
             context = browser.new_context()
             page = context.new_page()
@@ -25,8 +31,8 @@ def scrape_auctions(date):
             page.goto(url)
             page.wait_for_load_state('networkidle')
 
-            # Increase delay for additional loading time
-            time.sleep(10)  # Adjust if needed
+            # Additional delay for dynamic content loading
+            time.sleep(10)
 
             # Locate auction details
             auction_details = page.locator('.AUCTION_DETAILS')
