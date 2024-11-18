@@ -6,3 +6,4 @@ libgbm1
 libgtk-3-0
 libxdamage1
 libxshmfence1
+libasound2
