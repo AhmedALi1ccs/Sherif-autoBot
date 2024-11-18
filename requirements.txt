@@ -2,5 +2,4 @@ streamlit
 selenium
 webdriver-manager
 pandas
-undetected-chromedriver
-playwright
+pyvirtualdisplay
