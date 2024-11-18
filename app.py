@@ -2,46 +2,53 @@ import streamlit as st
 from playwright.sync_api import sync_playwright
 import pandas as pd
 import time
+import os
 
-st.title("Auction Scraper - Handle 403 Forbidden")
+# Install Playwright browsers (required for deployment)
+os.system("playwright install chromium")
 
-auction_date = st.date_input("Select Auction Date")
-run_button = st.button("Run Scraper")
+# Streamlit App Title
+st.title("Auction Scraper")
 
+# Sidebar for User Input
+st.sidebar.header("Scraper Settings")
+auction_date = st.sidebar.date_input("Select Auction Date")
+run_button = st.sidebar.button("Run Scraper")
+
+# Function to Scrape Auctions
 def scrape_auctions(date):
+    """Scrapes auction data from the specified date."""
     with sync_playwright() as p:
         try:
-            browser = p.chromium.launch(headless=True)  # Set to False for debugging
+            # Launch browser in headless mode
+            browser = p.chromium.launch(headless=True)
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                 extra_http_headers={
                     "Accept-Language": "en-US,en;q=0.9",
                     "Referer": "https://franklin.sheriffsaleauction.ohio.gov/"
                 }
-                # Uncomment below to add proxy
-                # proxy={
-                #     "server": "http://your-proxy-server.com:port",
-                #     "username": "proxy-username",
-                #     "password": "proxy-password"
-                # }
             )
             page = context.new_page()
 
+            # Format the date for the URL
             formatted_date = date.strftime('%m/%d/%Y')
             url = f"https://franklin.sheriffsaleauction.ohio.gov/index.cfm?zaction=AUCTION&Zmethod=PREVIEW&AUCTIONDATE={formatted_date}"
-
-            # Attach response handler for debugging
-            def handle_response(response):
-                st.text_area("Response Info", f"Status: {response.status}\nURL: {response.url}")
-
-            page.on("response", handle_response)
+            
+            # Inform the user about the scraping process
+            st.info(f"Scraping auction data for date: {formatted_date}")
+            st.write(f"Target URL: {url}")
 
             # Navigate to the page
             page.goto(url)
             page.wait_for_load_state('networkidle')
 
-            # Wait for additional loading
-            time.sleep(10)
+            # Additional delay to allow dynamic content to load
+            time.sleep(5)
+
+            # Debug: Show the full page HTML
+            full_html = page.content()
+            st.text_area("Full Page HTML Content (Debugging)", full_html, height=300)
 
             # Locate auction details
             auction_details = page.locator('.AUCTION_DETAILS')
@@ -51,8 +58,11 @@ def scrape_auctions(date):
                 st.warning("No auctions found for the selected date.")
                 return None
 
-            # Extract data
+            # Progress Bar for Feedback
+            progress_bar = st.progress(0)
             data_list = []
+
+            # Extract data from each auction detail block
             for i in range(count):
                 table_rows = auction_details.nth(i).locator('table.ad_tab tr')
                 row_count = table_rows.count()
@@ -64,10 +74,23 @@ def scrape_auctions(date):
                         value = table_rows.nth(j).locator('td.AD_DTA').inner_text().strip()
                         auction_data[label] = value
                     except:
-                        pass
+                        continue
 
+                # Append cleaned data
                 if auction_data:
-                    data_list.append(auction_data)
+                    data_list.append({
+                        "Case Status": auction_data.get("Case Status", ""),
+                        "Case #": auction_data.get("Case #", ""),
+                        "Parcel ID": auction_data.get("Parcel ID", ""),
+                        "Property Address": auction_data.get("Property Address", ""),
+                        "City, ZIP": auction_data.get("", ""),  # Empty label for City, ZIP
+                        "Appraised Value": auction_data.get("Appraised Value", ""),
+                        "Opening Bid": auction_data.get("Opening Bid", ""),
+                        "Deposit Requirement": auction_data.get("Deposit Requirement", "")
+                    })
+
+                # Update progress
+                progress_bar.progress((i + 1) / count)
 
             browser.close()
             return pd.DataFrame(data_list)
@@ -76,7 +99,28 @@ def scrape_auctions(date):
             st.error(f"Error during scraping: {e}")
             return None
 
+# Run Scraper if Button is Pressed
 if run_button:
+    st.info("Starting the scraping process...")
     df = scrape_auctions(auction_date)
-    if df is not None:
+
+    if df is not None and not df.empty:
+        # Split and Clean Data
+        df[['City', 'ZIP']] = df['City, ZIP'].str.split(',', expand=True)
+        df['City'] = df['City'].str.strip()
+        df['ZIP'] = df['ZIP'].str.strip()
+        df = df.drop(columns=['City, ZIP'])
+
+        # Display Results
+        st.success(f"✅ Scraping completed! Total entries: {len(df)}")
         st.dataframe(df)
+
+        # Download Button
+        st.download_button(
+            label="Download CSV",
+            data=df.to_csv(index=False).encode('utf-8'),
+            file_name=f'auction_details_{auction_date.strftime("%Y%m%d")}.csv',
+            mime='text/csv'
+        )
+    else:
+        st.warning("No data available for the selected date.")
