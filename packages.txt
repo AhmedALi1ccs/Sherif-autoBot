@@ -1,6 +1,8 @@
-chromium-browser
-chromium-chromedriver
-libxss1
-libappindicator1
-libindicator7
-fonts-liberation
+libnss3
+libatk-bridge2.0-0
+libxcomposite1
+libxrandr2
+libgbm1
+libgtk-3-0
+libxdamage1
+libxshmfence1
