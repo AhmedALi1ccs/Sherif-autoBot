@@ -11,7 +11,7 @@ run_button = st.button("Run Scraper")
 def scrape_auctions(date):
     with sync_playwright() as p:
         try:
-            browser = p.chromium.launch(headless=False)  # Set to False for debugging
+            browser = p.chromium.launch(headless=True)  # Set to False for debugging
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                 extra_http_headers={
