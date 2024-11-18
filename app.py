@@ -19,7 +19,7 @@ def scrape_auctions(date):
     with sync_playwright() as p:
         try:
             # Launch the browser
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=False)
             context = browser.new_context()
             page = context.new_page()
 
