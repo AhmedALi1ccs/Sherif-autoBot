@@ -10,10 +10,10 @@ os.system("playwright install chromium")
 # Streamlit App Title
 st.title("Auction Scraper")
 
-# Sidebar for User Input
-st.sidebar.header("Scraper Settings")
-auction_date = st.sidebar.date_input("Select Auction Date")
-run_button = st.sidebar.button("Run Scraper")
+# User Input for Auction Date
+st.subheader("Enter the Auction Date")
+auction_date = st.date_input("Select Auction Date")
+run_button = st.button("Run Scraper")
 
 # Function to Scrape Auctions
 def scrape_auctions(date):
@@ -37,7 +37,6 @@ def scrape_auctions(date):
             
             # Inform the user about the scraping process
             st.info(f"Scraping auction data for date: {formatted_date}")
-            st.write(f"Target URL: {url}")
 
             # Navigate to the page
             page.goto(url)
@@ -45,10 +44,6 @@ def scrape_auctions(date):
 
             # Additional delay to allow dynamic content to load
             time.sleep(5)
-
-            # Debug: Show the full page HTML
-            full_html = page.content()
-            st.text_area("Full Page HTML Content (Debugging)", full_html, height=300)
 
             # Locate auction details
             auction_details = page.locator('.AUCTION_DETAILS')
