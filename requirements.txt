@@ -1,4 +1,6 @@
 streamlit
 selenium
-chromedriver-autoinstaller
+webdriver-manager
 pandas
+undetected-chromedriver
+playwright
