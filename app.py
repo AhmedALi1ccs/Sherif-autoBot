@@ -126,7 +126,7 @@ if run_button:
         df['City'] = df['City'].str.strip()
         df['ZIP'] = df['ZIP'].str.strip()
         df = df.drop(columns=['City, ZIP'])
-
+        df['ZIP'] = df['ZIP'].str[:5]
         # Display Results
         st.success(f"✅ Scraping completed! Total entries: {len(df)}")
         st.dataframe(df)
