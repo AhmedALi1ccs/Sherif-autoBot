@@ -85,21 +85,30 @@ def scrape_auctions(date):
                         except:
                             continue
 
-                    # Append cleaned data
-                    if auction_data:
-                        data_list.append({
-                            "Case Status": auction_data.get("Case Status", ""),
-                            "Case #": auction_data.get("Case #", ""),
-                            "Parcel ID": auction_data.get("Parcel ID", ""),
-                            "Property Address": auction_data.get("Property Address", ""),
-                            "City, ZIP": auction_data.get("", ""),  # Empty label for City, ZIP
-                            "Appraised Value": auction_data.get("Appraised Value", ""),
-                            "Opening Bid": auction_data.get("Opening Bid", ""),
-                            "Deposit Requirement": auction_data.get("Deposit Requirement", "")
-                        })
+                    # Properly extract 'Auction Starts'
+                    try:
+                        auction_starts_locator = page.locator('.AUCTION_STATS .ASTAT_MSGB').nth(i)
+                        auction_starts = auction_starts_locator.inner_text().strip()
+                    except:
+                        auction_starts = ""
 
-                    # Update progress
+                    # Append cleaned data including 'Auction Starts'
+                    data_list.append({
+                        "Case Status": auction_data.get("Case Status", ""),
+                        "Case #": auction_data.get("Case #", ""),
+                        "Parcel ID": auction_data.get("Parcel ID", ""),
+                        "Property Address": auction_data.get("Property Address", ""),
+                        "City, ZIP": auction_data.get("", ""),
+                        "Appraised Value": auction_data.get("Appraised Value", ""),
+                        "Opening Bid": auction_data.get("Opening Bid", ""),
+                        "Deposit Requirement": auction_data.get("Deposit Requirement", ""),
+                        "Auction Starts": auction_starts
+                    })
+
+                    # Update progress bar
                     progress_bar.progress((i + 1) / count)
+
+
 
                 # Move to the next page if not on the last page
                 if current_page < max_pages:
